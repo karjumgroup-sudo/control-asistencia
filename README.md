@@ -13,6 +13,4 @@ Un sistema de registro de asistencia web ligero, seguro y responsivo diseñado p
 - 🌐 **Manejo Seguro de CORS:** Configurado con `Content-Type: text/plain` para garantizar compatibilidad con política de origen cruzado en navegadores móviles.
 - 📊 **Base de Datos en Google Sheets:** Registro automático con fecha, hora, tipo de evento, coordenadas GPS, distancia calculada y estado de validación.
 
----
 
-## 🛠️ Arquitectura del Sistema
