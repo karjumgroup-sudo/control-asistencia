@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Control de Asistencia</title>
+  <style>
+    * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background-color: #f0f2f5; margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
+    
+    .container { background: #ffffff; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 480px; text-align: center; }
+    
+    .badge-location { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 50px; font-size: 0.95rem; font-weight: bold; margin-bottom: 15px; background: #fff3cd; color: #856404; }
+    .badge-location.ok { background: #d4edda; color: #155724; }
+    .badge-location.error { background: #f8d7da; color: #721c24; }
+
+    .device-info { font-size: 0.8rem; color: #6c757d; margin-bottom: 15px; font-style: italic; }
+
+    .display-cedula { width: 100%; height: 60px; font-size: 2rem; font-weight: bold; text-align: center; border: 2px solid #ccc; border-radius: 12px; margin-bottom: 20px; background: #fafafa; letter-spacing: 2px; }
+    .display-cedula:read-only { background: #e9ecef; color: #495057; }
+
+    .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+    .btn-key { background: #e9ecef; border: none; padding: 18px; font-size: 1.8rem; font-weight: bold; border-radius: 12px; cursor: pointer; color: #333; }
+    .btn-key:active { background: #ced4da; }
+    .btn-clear { background: #ffe3e3; color: #d90429; }
+    .btn-delete { background: #fff3bf; color: #f59f00; }
+
+    .btn-submit { width: 100%; background: #2b8a3e; color: white; border: none; padding: 20px; font-size: 1.5rem; font-weight: bold; border-radius: 12px; cursor: pointer; transition: background 0.2s; }
+    .btn-submit:disabled { background: #adb5bd; cursor: not-allowed; }
+
+    /* Modal / Pantalla de Confirmación */
+    .overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; padding: 20px; z-index: 99; }
+    .card-result { background: white; padding: 30px; border-radius: 20px; text-align: center; width: 100%; max-width: 400px; }
+    .card-result.success { border-top: 10px solid #2b8a3e; }
+    .card-result.error { border-top: 10px solid #d90429; }
+    .card-result h2 { margin: 10px 0; font-size: 1.8rem; }
+    .card-result p { font-size: 1.1rem; color: #555; margin: 8px 0; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div id="badge-gps" class="badge-location">📍 Obteniendo ubicación GPS...</div>
+    <div id="device-info" class="device-info">Dispositivo seguro vinculado</div>
+
+    <input type="text" id="cedula-input" class="display-cedula" readonly placeholder="Cédula">
+
+    <div id="keypad" class="keypad">
+      <button class="btn-key" onclick="pressNum('1')">1</button>
+      <button class="btn-key" onclick="pressNum('2')">2</button>
+      <button class="btn-key" onclick="pressNum('3')">3</button>
+      <button class="btn-key" onclick="pressNum('4')">4</button>
+      <button class="btn-key" onclick="pressNum('5')">5</button>
+      <button class="btn-key" onclick="pressNum('6')">6</button>
+      <button class="btn-key" onclick="pressNum('7')">7</button>
+      <button class="btn-key" onclick="pressNum('8')">8</button>
+      <button class="btn-key" onclick="pressNum('9')">9</button>
+      <button class="btn-key btn-clear" onclick="clearAll()">C</button>
+      <button class="btn-key" onclick="pressNum('0')">0</button>
+      <button class="btn-key btn-delete" onclick="deleteLast()">⌫</button>
+    </div>
+
+    <button id="btn-marcar" class="btn-submit" onclick="enviarMarca()" disabled>MARCAR INGRESO / SALIDA</button>
+  </div>
+
+  <!-- Modal de Resultados -->
+  <div id="overlay" class="overlay">
+    <div id="card-result" class="card-result">
+      <h2 id="res-title"></h2>
+      <p id="res-name" style="font-weight: bold;"></p>
+      <p id="res-msg"></p>
+    </div>
+  </div>
+
+  <script>
+    // ⚠️ REEMPLAZA CON LA URL OBTENIDA DE GOOGLE APPS SCRIPT
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwMEybubG_a-jntTzJJum3dUHDer1wUttv5OvFDMl6ojjnj4Q-zXdG1MVuzR-Yyd26n/exec";
+
+    const PLAZAS = [
+      { nombre: "Multiplaza Escazú", lat: 9.94506212827314, lng: -84.15205751759024 },
+      { nombre: "Multiplaza Curridabat", lat: 9.917243975407315, lng: -84.04671783293279 },
+      { nombre: "Paseo las Flores", lat: 9.985381654337761, lng: -84.11120067526092 },
+      { nombre: "Plaza Lincoln", lat: 9.96283796993263, lng: -84.05592175012283 },
+      { nombre: "Paseo Metrópoli", lat: 9.86722326167942, lng: -83.94264286176883 },
+      { nombre: "Parque de Diversiones", lat: 9.96110933882435, lng: -84.12798125520388 },
+      { nombre: "Paseo Colón", lat: 9.934178813755564, lng: -84.09087057561013 },
+      { nombre: "Vistas de la Cruz", lat: 9.903030669839145, lng: -84.0869393501236 }
+    ];
+
+    let ubicacionDetectada = null;
+    let coordsDetectadas = "";
+    let deviceId = "";
+
+    // 1. Obtener o Generar UUID único del teléfono
+    function inicializarDeviceId() {
+      deviceId = localStorage.getItem("app_device_id");
+      if (!deviceId) {
+        deviceId = crypto.randomUUID();
+        localStorage.setItem("app_device_id", deviceId);
+      }
+
+      // Si ya hay una cédula guardada en este teléfono, se fija automáticamente
+      const cedulaGuardada = localStorage.getItem("app_user_cedula");
+      if (cedulaGuardada) {
+        document.getElementById("cedula-input").value = cedulaGuardada;
+        document.getElementById("keypad").style.display = "none"; // Se oculta el teclado
+        document.getElementById("device-info").innerText = "🔒 Dispositivo vinculado a cédula: " + cedulaGuardada;
+      } else {
+        document.getElementById("device-info").innerText = "📱 Dispositivo nuevo (se vinculará al primer marcaje)";
+      }
+    }
+
+    // 2. Obtener Geolocalización
+    function obtenerUbicacion() {
+      const badge = document.getElementById("badge-gps");
+      
+      if (!navigator.geolocation) {
+        badge.className = "badge-location error";
+        badge.innerHTML = "❌ GPS no soportado en este dispositivo";
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const userLat = pos.coords.latitude;
+          const userLng = pos.coords.longitude;
+          coordsDetectadas = `${userLat.toFixed(5)}, ${userLng.toFixed(5)}`;
+
+          let plazaEncontrada = null;
+
+          for (let p of PLAZAS) {
+            const dist = calcularDistanciaKM(userLat, userLng, p.lat, p.lng);
+            if (dist <= 0.5) { // 500 metros
+              plazaEncontrada = p.nombre;
+              break;
+            }
+          }
+
+          if (plazaEncontrada) {
+            ubicacionDetectada = plazaEncontrada;
+            badge.className = "badge-location ok";
+            badge.innerHTML = `📍 ${plazaEncontrada}`;
+            document.getElementById("btn-marcar").disabled = false;
+          } else {
+            badge.className = "badge-location error";
+            badge.innerHTML = "⚠️ Fuera de rango de ubicación autorizada";
+            document.getElementById("btn-marcar").disabled = true;
+          }
+        },
+        (err) => {
+          badge.className = "badge-location error";
+          badge.innerHTML = "⚠️ Debe activar el GPS para poder marcar";
+          document.getElementById("btn-marcar").disabled = true;
+        },
+        { enableHighAccuracy: true }
+      );
+    }
+
+    function calcularDistanciaKM(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+    }
+
+    // 3. Teclado Numérico
+    function pressNum(num) {
+      const input = document.getElementById("cedula-input");
+      if (input.value.length < 15) input.value += num;
+    }
+    function deleteLast() {
+      const input = document.getElementById("cedula-input");
+      input.value = input.value.slice(0, -1);
+    }
+    function clearAll() {
+      document.getElementById("cedula-input").value = "";
+    }
+
+    // 4. Sonido Beep
+    function playBeep(type) {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      if (type === 'success') {
+        osc.frequency.value = 587.33;
+        osc.start();
+        setTimeout(() => osc.stop(), 200);
+      } else {
+        osc.frequency.value = 220;
+        osc.start();
+        setTimeout(() => osc.stop(), 400);
+      }
+    }
+
+    // 5. Enviar Marcaje
+    async function enviarMarca() {
+      const cedula = document.getElementById("cedula-input").value.trim();
+      if (!cedula) return alert("Por favor digite un número de cédula.");
+
+      const btn = document.getElementById("btn-marcar");
+      btn.disabled = true;
+      btn.innerText = "Procesando...";
+
+      try {
+        const response = await fetch(WEB_APP_URL, {
+          method: "POST",
+          body: JSON.stringify({
+            cedula: cedula,
+            deviceId: deviceId,
+            ubicacion: ubicacionDetectada,
+            coords: coordsDetectadas
+          })
+        });
+
+        const res = await response.json();
+        
+        // Si el servidor confirma el marcaje, recordamos la cédula fijada en este teléfono
+        if (res.status === "SUCCESS") {
+          localStorage.setItem("app_user_cedula", cedula);
+          document.getElementById("keypad").style.display = "none";
+          document.getElementById("device-info").innerText = "🔒 Dispositivo vinculado a cédula: " + cedula;
+        }
+
+        mostrarResultado(res);
+
+      } catch (err) {
+        mostrarResultado({ status: "ERROR", message: "Error de conexión." });
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "MARCAR INGRESO / SALIDA";
+      }
+    }
+
+    function mostrarResultado(res) {
+      const overlay = document.getElementById("overlay");
+      const card = document.getElementById("card-result");
+      const title = document.getElementById("res-title");
+      const name = document.getElementById("res-name");
+      const msg = document.getElementById("res-msg");
+
+      if (res.status === "SUCCESS") {
+        playBeep('success');
+        card.className = "card-result success";
+        title.innerText = `✅ ${res.tipo}`;
+        name.innerText = res.nombre;
+        msg.innerText = `Registrado en ${res.ubicacion} a las ${res.hora}`;
+      } else {
+        playBeep('error');
+        card.className = "card-result error";
+        title.innerText = "❌ ERROR";
+        name.innerText = "";
+        msg.innerText = res.message || "No se pudo registrar la marca.";
+      }
+
+      overlay.style.display = "flex";
+      setTimeout(() => { overlay.style.display = "none"; }, 3500);
+    }
+
+    window.onload = () => {
+      inicializarDeviceId();
+      obtenerUbicacion();
+    };
+  </script>
+</body>
+</html>
