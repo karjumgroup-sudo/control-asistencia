@@ -1,0 +1,20 @@
+{
+  "name": "Control de Asistencia - Karjim",
+  "short_name": "Asistencia",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#F5F6F8",
+  "theme_color": "#D2B47C",
+  "icons": [
+    {
+      "src": "Icono Karjim CR.jpeg",
+      "sizes": "192x192",
+      "type": "image/jpeg"
+    },
+    {
+      "src": "Icono Karjim CR.jpeg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}
