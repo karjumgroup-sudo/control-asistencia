@@ -3,45 +3,203 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Control de Asistencia</title>
+  <title>Control de Asistencia - Karjim</title>
   <style>
-    * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    body { background-color: #f0f2f5; margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
+    :root {
+      --primary-color: #D2B47C;       /* Dorado Karjim */
+      --primary-hover: #C2A36B;       /* Dorado Oscuro */
+      --bg-gradient-start: #F5F6F8;   /* Fondo claro */
+      --bg-gradient-end: #E2E4E9;     /* Fondo suave */
+      --text-dark: #2C3E50;
+      --text-muted: #6C7A89;
+      --white: #FFFFFF;
+      --danger: #E74C3C;
+      --success: #2ECC71;
+    }
+
+    * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
     
-    .container { background: #ffffff; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 480px; text-align: center; }
+    body { 
+      background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%); 
+      margin: 0; 
+      padding: 15px; 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center; 
+      min-height: 100vh; 
+    }
     
-    .badge-location { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 50px; font-size: 0.95rem; font-weight: bold; margin-bottom: 15px; background: #fff3cd; color: #856404; }
-    .badge-location.ok { background: #d4edda; color: #155724; }
-    .badge-location.error { background: #f8d7da; color: #721c24; }
+    .container { 
+      background: var(--white); 
+      padding: 30px 25px; 
+      border-radius: 24px; 
+      box-shadow: 0 15px 35px rgba(0,0,0,0.08); 
+      width: 100%; 
+      max-width: 440px; 
+      text-align: center; 
+    }
 
-    .device-info { font-size: 0.8rem; color: #6c757d; margin-bottom: 15px; font-style: italic; }
+    /* Header y Logo */
+    .brand-header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 20px;
+    }
 
-    .display-cedula { width: 100%; height: 60px; font-size: 2rem; font-weight: bold; text-align: center; border: 2px solid #ccc; border-radius: 12px; margin-bottom: 20px; background: #fafafa; letter-spacing: 2px; }
-    .display-cedula:read-only { background: #e9ecef; color: #495057; }
+    .brand-logo {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      object-fit: cover;
+      box-shadow: 0 6px 15px rgba(210, 180, 124, 0.4);
+      margin-bottom: 12px;
+    }
 
-    .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
-    .btn-key { background: #e9ecef; border: none; padding: 18px; font-size: 1.8rem; font-weight: bold; border-radius: 12px; cursor: pointer; color: #333; }
-    .btn-key:active { background: #ced4da; }
-    .btn-clear { background: #ffe3e3; color: #d90429; }
-    .btn-delete { background: #fff3bf; color: #f59f00; }
+    .brand-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--text-dark);
+      margin: 0;
+      letter-spacing: 0.5px;
+    }
 
-    .btn-submit { width: 100%; background: #2b8a3e; color: white; border: none; padding: 20px; font-size: 1.5rem; font-weight: bold; border-radius: 12px; cursor: pointer; transition: background 0.2s; }
-    .btn-submit:disabled { background: #adb5bd; cursor: not-allowed; }
+    .badge-location { 
+      display: inline-flex; 
+      align-items: center; 
+      gap: 8px; 
+      padding: 8px 16px; 
+      border-radius: 50px; 
+      font-size: 0.85rem; 
+      font-weight: 600; 
+      margin-bottom: 12px; 
+      background: #FFF8E7; 
+      color: #B8860B; 
+      border: 1px solid #F3E5AB;
+    }
+    .badge-location.ok { background: #E8F8F5; color: #117A65; border-color: #A3E4D7; }
+    .badge-location.error { background: #FDEDEC; color: #922B21; border-color: #FADBD8; }
 
-    /* Modal / Pantalla de Confirmación */
-    .overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; padding: 20px; z-index: 99; }
-    .card-result { background: white; padding: 30px; border-radius: 20px; text-align: center; width: 100%; max-width: 400px; }
-    .card-result.success { border-top: 10px solid #2b8a3e; }
-    .card-result.error { border-top: 10px solid #d90429; }
-    .card-result h2 { margin: 10px 0; font-size: 1.8rem; }
-    .card-result p { font-size: 1.1rem; color: #555; margin: 8px 0; }
+    .device-info { 
+      font-size: 0.8rem; 
+      color: var(--text-muted); 
+      margin-bottom: 18px; 
+      font-weight: 500;
+    }
+
+    .display-cedula { 
+      width: 100%; 
+      height: 55px; 
+      font-size: 1.8rem; 
+      font-weight: 700; 
+      text-align: center; 
+      border: 2px solid #E2E8F0; 
+      border-radius: 12px; 
+      margin-bottom: 18px; 
+      background: #FAFAFA; 
+      color: var(--text-dark);
+      letter-spacing: 2px; 
+      outline: none;
+    }
+
+    .keypad { 
+      display: grid; 
+      grid-template-columns: repeat(3, 1fr); 
+      gap: 10px; 
+      margin-bottom: 20px; 
+    }
+
+    .btn-key { 
+      background: #F8F9FA; 
+      border: 1px solid #E9ECEF; 
+      padding: 16px; 
+      font-size: 1.5rem; 
+      font-weight: 600; 
+      border-radius: 12px; 
+      cursor: pointer; 
+      color: var(--text-dark);
+      transition: all 0.15s ease;
+    }
+    .btn-key:active { 
+      background: #E2E8F0; 
+      transform: scale(0.98);
+    }
+    .btn-clear { background: #FADBD8; color: #922B21; border: none; }
+    .btn-delete { background: #FCF3CF; color: #B7950B; border: none; }
+
+    .btn-submit { 
+      width: 100%; 
+      background: var(--primary-color); 
+      color: var(--white); 
+      border: none; 
+      padding: 18px; 
+      font-size: 1.2rem; 
+      font-weight: 700; 
+      border-radius: 12px; 
+      cursor: pointer; 
+      box-shadow: 0 6px 18px rgba(210, 180, 124, 0.4);
+      transition: all 0.2s ease; 
+      letter-spacing: 0.5px;
+    }
+    .btn-submit:hover:not(:disabled) {
+      background: var(--primary-hover);
+    }
+    .btn-submit:disabled { 
+      background: #BDC3C7; 
+      box-shadow: none;
+      cursor: not-allowed; 
+    }
+
+    .btn-reset {
+      background: transparent; 
+      border: none; 
+      color: var(--text-muted); 
+      text-decoration: underline; 
+      margin-top: 15px; 
+      cursor: pointer; 
+      font-size: 0.8rem;
+    }
+
+    /* Modal de Confirmación */
+    .overlay { 
+      position: fixed; 
+      top:0; left:0; width:100%; height:100%; 
+      background: rgba(0,0,0,0.6); 
+      backdrop-filter: blur(4px);
+      display: none; 
+      justify-content: center; 
+      align-items: center; 
+      padding: 20px; 
+      z-index: 99; 
+    }
+    .card-result { 
+      background: var(--white); 
+      padding: 30px; 
+      border-radius: 20px; 
+      text-align: center; 
+      width: 100%; 
+      max-width: 380px; 
+      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    }
+    .card-result.success { border-top: 8px solid var(--primary-color); }
+    .card-result.error { border-top: 8px solid var(--danger); }
+    .card-result h2 { margin: 10px 0; font-size: 1.6rem; color: var(--text-dark); }
+    .card-result p { font-size: 1rem; color: var(--text-muted); margin: 8px 0; }
   </style>
 </head>
 <body>
 
   <div class="container">
-    <div id="badge-gps" class="badge-location">📍 Obteniendo ubicación GPS...</div>
-    <div id="device-info" class="device-info">Dispositivo seguro vinculado</div>
+    <!-- Encabezado con Logo del Sistema -->
+    <div class="brand-header">
+      <!-- Reemplaza "Icono Karjim CR.jpeg" por la ruta local o URL de tu imagen -->
+      <img src="Icono Karjim CR.jpeg" alt="Karjim Logo" class="brand-logo">
+      <h1 class="brand-title">Control de Asistencia</h1>
+    </div>
+
+    <div id="badge-gps" class="badge-location">📍 Obteniendo ubicación...</div>
+    <div id="device-info" class="device-info">Cargando verificación de dispositivo...</div>
 
     <input type="text" id="cedula-input" class="display-cedula" readonly placeholder="Cédula">
 
@@ -60,20 +218,23 @@
       <button class="btn-key btn-delete" onclick="deleteLast()">⌫</button>
     </div>
 
-    <button id="btn-marcar" class="btn-submit" onclick="enviarMarca()" disabled>MARCAR INGRESO / SALIDA</button>
+    <button id="btn-marcar" class="btn-submit" onclick="enviarMarca()" disabled>MARCAR ASISTENCIA</button>
+
+    <button type="button" class="btn-reset" onclick="resetearDispositivo()">
+      Desvincular / Usar otra cédula
+    </button>
   </div>
 
-  <!-- Modal de Resultados -->
+  <!-- Modal -->
   <div id="overlay" class="overlay">
     <div id="card-result" class="card-result">
       <h2 id="res-title"></h2>
-      <p id="res-name" style="font-weight: bold;"></p>
+      <p id="res-name" style="font-weight: bold; color: var(--text-dark);"></p>
       <p id="res-msg"></p>
     </div>
   </div>
 
   <script>
-    // ⚠️ REEMPLAZA CON LA URL OBTENIDA DE GOOGLE APPS SCRIPT
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzRvtKwPBUowWtr1OpPosuc-Jh5FoNxd2SiqKMixXkQKuXNEqvgXEBXeISGnvbfhoOe/exec";
 
     const PLAZAS = [
@@ -91,7 +252,6 @@
     let coordsDetectadas = "";
     let deviceId = "";
 
-    // 1. Obtener o Generar UUID único del teléfono
     function inicializarDeviceId() {
       deviceId = localStorage.getItem("app_device_id");
       if (!deviceId) {
@@ -99,24 +259,22 @@
         localStorage.setItem("app_device_id", deviceId);
       }
 
-      // Si ya hay una cédula guardada en este teléfono, se fija automáticamente
       const cedulaGuardada = localStorage.getItem("app_user_cedula");
       if (cedulaGuardada) {
         document.getElementById("cedula-input").value = cedulaGuardada;
-        document.getElementById("keypad").style.display = "none"; // Se oculta el teclado
-        document.getElementById("device-info").innerText = "🔒 Dispositivo vinculado a cédula: " + cedulaGuardada;
+        document.getElementById("keypad").style.display = "none";
+        document.getElementById("device-info").innerText = "🔒 Dispositivo vinculado a: " + cedulaGuardada;
       } else {
-        document.getElementById("device-info").innerText = "📱 Dispositivo nuevo (se vinculará al primer marcaje)";
+        document.getElementById("device-info").innerText = "📱 Dispositivo listo para vinculación";
       }
     }
 
-    // 2. Obtener Geolocalización
     function obtenerUbicacion() {
       const badge = document.getElementById("badge-gps");
       
       if (!navigator.geolocation) {
         badge.className = "badge-location error";
-        badge.innerHTML = "❌ GPS no soportado en este dispositivo";
+        badge.innerHTML = "❌ GPS no soportado";
         return;
       }
 
@@ -130,7 +288,7 @@
 
           for (let p of PLAZAS) {
             const dist = calcularDistanciaKM(userLat, userLng, p.lat, p.lng);
-            if (dist <= 0.5) { // 500 metros
+            if (dist <= 0.5) {
               plazaEncontrada = p.nombre;
               break;
             }
@@ -143,13 +301,13 @@
             document.getElementById("btn-marcar").disabled = false;
           } else {
             badge.className = "badge-location error";
-            badge.innerHTML = "⚠️ Fuera de rango de ubicación autorizada";
+            badge.innerHTML = "⚠️ Fuera de rango de ubicación";
             document.getElementById("btn-marcar").disabled = true;
           }
         },
         (err) => {
           badge.className = "badge-location error";
-          badge.innerHTML = "⚠️ Debe activar el GPS para poder marcar";
+          badge.innerHTML = "⚠️ Debe activar el GPS";
           document.getElementById("btn-marcar").disabled = true;
         },
         { enableHighAccuracy: true }
@@ -166,7 +324,6 @@
       return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
     }
 
-    // 3. Teclado Numérico
     function pressNum(num) {
       const input = document.getElementById("cedula-input");
       if (input.value.length < 15) input.value += num;
@@ -179,29 +336,9 @@
       document.getElementById("cedula-input").value = "";
     }
 
-    // 4. Sonido Beep
-    function playBeep(type) {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-
-      if (type === 'success') {
-        osc.frequency.value = 587.33;
-        osc.start();
-        setTimeout(() => osc.stop(), 200);
-      } else {
-        osc.frequency.value = 220;
-        osc.start();
-        setTimeout(() => osc.stop(), 400);
-      }
-    }
-
-    // 5. Enviar Marcaje
     async function enviarMarca() {
       const cedula = document.getElementById("cedula-input").value.trim();
-      if (!cedula) return alert("Por favor digite un número de cédula.");
+      if (!cedula) return alert("Por favor digite su cédula.");
 
       const btn = document.getElementById("btn-marcar");
       btn.disabled = true;
@@ -210,6 +347,11 @@
       try {
         const response = await fetch(WEB_APP_URL, {
           method: "POST",
+          mode: "cors",
+          redirect: "follow",
+          headers: {
+            "Content-Type": "text/plain;charset=utf-8"
+          },
           body: JSON.stringify({
             cedula: cedula,
             deviceId: deviceId,
@@ -220,20 +362,27 @@
 
         const res = await response.json();
         
-        // Si el servidor confirma el marcaje, recordamos la cédula fijada en este teléfono
         if (res.status === "SUCCESS") {
           localStorage.setItem("app_user_cedula", cedula);
           document.getElementById("keypad").style.display = "none";
-          document.getElementById("device-info").innerText = "🔒 Dispositivo vinculado a cédula: " + cedula;
+          document.getElementById("device-info").innerText = "🔒 Dispositivo vinculado a: " + cedula;
         }
 
         mostrarResultado(res);
 
       } catch (err) {
-        mostrarResultado({ status: "ERROR", message: "Error de conexión." });
+        mostrarResultado({ status: "ERROR", message: "Error de conexión o permisos." });
       } finally {
         btn.disabled = false;
-        btn.innerText = "MARCAR INGRESO / SALIDA";
+        btn.innerText = "MARCAR ASISTENCIA";
+      }
+    }
+
+    function resetearDispositivo() {
+      if (confirm("¿Deseas desvincular este dispositivo de la cédula actual?")) {
+        localStorage.removeItem("app_user_cedula");
+        localStorage.removeItem("app_device_id");
+        location.reload();
       }
     }
 
@@ -245,13 +394,11 @@
       const msg = document.getElementById("res-msg");
 
       if (res.status === "SUCCESS") {
-        playBeep('success');
         card.className = "card-result success";
         title.innerText = `✅ ${res.tipo}`;
         name.innerText = res.nombre;
         msg.innerText = `Registrado en ${res.ubicacion} a las ${res.hora}`;
       } else {
-        playBeep('error');
         card.className = "card-result error";
         title.innerText = "❌ ERROR";
         name.innerText = "";
