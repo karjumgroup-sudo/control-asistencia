@@ -235,6 +235,12 @@
   <script>
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzRvtKwPBUowWtr1OpPosuc-Jh5FoNxd2SiqKMixXkQKuXNEqvgXEBXeISGnvbfhoOe/exec";
 
+    // ⚠️ Debe coincidir EXACTAMENTE con SHARED_TOKEN en Config.gs
+    const APP_TOKEN = "4DC0D0B471DBC5B7D95342C200D0EDAB";
+
+    // Esta lista solo se usa para mostrar un mensaje rápido en pantalla (UX).
+    // La validación real y definitiva ocurre en el servidor (Ubicacion.gs),
+    // que recalcula todo a partir de las coordenadas crudas.
     const PLAZAS = [
       { nombre: "Multiplaza Escazú", lat: 9.94506212827314, lng: -84.15205751759024 },
       { nombre: "Multiplaza Curridabat", lat: 9.917243975407315, lng: -84.04671783293279 },
@@ -246,8 +252,8 @@
       { nombre: "Vistas de la Cruz", lat: 9.903030669839145, lng: -84.0869393501236 }
     ];
 
-    let ubicacionDetectada = null;
-    let coordsDetectadas = "";
+    let latDetectada = null;
+    let lngDetectada = null;
     let deviceId = "";
 
     function inicializarDeviceId() {
@@ -278,14 +284,13 @@
 
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          const userLat = pos.coords.latitude;
-          const userLng = pos.coords.longitude;
-          coordsDetectadas = `${userLat.toFixed(5)}, ${userLng.toFixed(5)}`;
+          latDetectada = pos.coords.latitude;
+          lngDetectada = pos.coords.longitude;
 
           let plazaEncontrada = null;
 
           for (let p of PLAZAS) {
-            const dist = calcularDistanciaKM(userLat, userLng, p.lat, p.lng);
+            const dist = calcularDistanciaKM(latDetectada, lngDetectada, p.lat, p.lng);
             if (dist <= 0.5) {
               plazaEncontrada = p.nombre;
               break;
@@ -293,7 +298,6 @@
           }
 
           if (plazaEncontrada) {
-            ubicacionDetectada = plazaEncontrada;
             badge.className = "badge-location ok";
             badge.innerHTML = `📍 ${plazaEncontrada}`;
             document.getElementById("btn-marcar").disabled = false;
@@ -338,6 +342,10 @@
       const cedula = document.getElementById("cedula-input").value.trim();
       if (!cedula) return alert("Por favor digite su cédula.");
 
+      if (latDetectada === null || lngDetectada === null) {
+        return alert("Aún no se ha detectado su ubicación. Active el GPS e intente de nuevo.");
+      }
+
       const btn = document.getElementById("btn-marcar");
       btn.disabled = true;
       btn.innerText = "Procesando...";
@@ -351,10 +359,11 @@
             "Content-Type": "text/plain;charset=utf-8"
           },
           body: JSON.stringify({
+            token: APP_TOKEN,
             cedula: cedula,
             deviceId: deviceId,
-            ubicacion: ubicacionDetectada,
-            coords: coordsDetectadas
+            lat: latDetectada,
+            lng: lngDetectada
           })
         });
 
@@ -388,6 +397,11 @@
         title.innerText = `✅ ${res.tipo}`;
         name.innerText = res.nombre;
         msg.innerText = `Registrado en ${res.ubicacion} a las ${res.hora}`;
+      } else if (res.status === "OUT_OF_RANGE") {
+        card.className = "card-result error";
+        title.innerText = "⚠️ FUERA DE RANGO";
+        name.innerText = "";
+        msg.innerText = res.message || "Su ubicación no coincide con ninguna plaza.";
       } else {
         card.className = "card-result error";
         title.innerText = "❌ ERROR";
