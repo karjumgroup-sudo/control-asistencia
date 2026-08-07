@@ -378,14 +378,6 @@
       }
     }
 
-    function resetearDispositivo() {
-      if (confirm("¿Deseas desvincular este dispositivo de la cédula actual?")) {
-        localStorage.removeItem("app_user_cedula");
-        localStorage.removeItem("app_device_id");
-        location.reload();
-      }
-    }
-
     function mostrarResultado(res) {
       const overlay = document.getElementById("overlay");
       const card = document.getElementById("card-result");
