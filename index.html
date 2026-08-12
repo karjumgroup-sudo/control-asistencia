@@ -275,8 +275,15 @@
     let esKiosko = false;
 
     function inicializarDeviceId() {
-      const params = new URLSearchParams(window.location.search);
-      const kioskoParam = params.get("kiosko");
+      // 1. Buscar en parámetros normales (?kiosko=01)
+  const params = new URLSearchParams(window.location.search);
+  let kioskoParam = params.get("kiosko");
+
+  // 2. Si no lo encuentra, buscar en el Hash (#kiosko=01)
+  if (!kioskoParam && window.location.hash) {
+    const hashParams = new URLSearchParams(window.location.hash.replace("#", "?"));
+    kioskoParam = hashParams.get("kiosko");
+  }
 
       if (kioskoParam) {
         // Modo kiosco: ID fijo y predecible, NO se guarda en localStorage,
