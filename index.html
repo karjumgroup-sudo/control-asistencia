@@ -5,16 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Control de Asistencia - Karjim</title>
 
-
+  <!-- Ícono para pestaña del navegador -->
   <link rel="icon" type="image/jpeg" href="Icono Karjim CR.jpeg">
 
-
+  <!-- Ícono al agregar a pantalla de inicio en iPhone/iPad -->
   <link rel="apple-touch-icon" href="Icono Karjim CR.jpeg">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="Karjim">
+  <meta name="apple-mobile-web-app-title" content="Asistencia Karjim">
 
-
+  <!-- Ícono y comportamiento al agregar a pantalla de inicio en Android -->
   <link rel="manifest" href="manifest.json">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#D2B47C">
@@ -244,15 +244,19 @@
       <h2 id="res-title"></h2>
       <p id="res-name" style="font-weight: bold; color: var(--text-dark);"></p>
       <p id="res-msg"></p>
+      <button class="btn-submit" style="margin-top: 10px;" onclick="cerrarResultado()">Cerrar</button>
     </div>
   </div>
 
   <script>
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzRvtKwPBUowWtr1OpPosuc-Jh5FoNxd2SiqKMixXkQKuXNEqvgXEBXeISGnvbfhoOe/exec";
 
+    // ⚠️ Debe coincidir EXACTAMENTE con SHARED_TOKEN en Config.gs
     const APP_TOKEN = "4DC0D0B471DBC5B7D95342C200D0EDAB";
 
-  
+    // Esta lista solo se usa para mostrar un mensaje rápido en pantalla (UX).
+    // La validación real y definitiva ocurre en el servidor (Ubicacion.gs),
+    // que recalcula todo a partir de las coordenadas crudas.
     const PLAZAS = [
       { nombre: "Multiplaza Escazú", lat: 9.94506212827314, lng: -84.15205751759024 },
       { nombre: "Multiplaza Curridabat", lat: 9.917243975407315, lng: -84.04671783293279 },
@@ -268,8 +272,21 @@
     let latDetectada = null;
     let lngDetectada = null;
     let deviceId = "";
+    let esKiosko = false;
 
     function inicializarDeviceId() {
+      const params = new URLSearchParams(window.location.search);
+      const kioskoParam = params.get("kiosko");
+
+      if (kioskoParam) {
+        // Modo kiosco: ID fijo y predecible, NO se guarda en localStorage,
+        // y NUNCA se recuerda/oculta el teclado (lo usan varias personas).
+        esKiosko = true;
+        deviceId = "KIOSK-" + kioskoParam.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+        document.getElementById("device-info").innerText = "🖥️ Modo kiosco (" + deviceId + ") — cualquier cédula puede marcar aquí";
+        return;
+      }
+
       deviceId = localStorage.getItem("app_device_id");
       if (!deviceId) {
         deviceId = crypto.randomUUID();
@@ -383,9 +400,14 @@
         const res = await response.json();
         
         if (res.status === "SUCCESS") {
-          localStorage.setItem("app_user_cedula", cedula);
-          document.getElementById("keypad").style.display = "none";
-          document.getElementById("device-info").innerText = "🔒 Dispositivo vinculado a: " + cedula;
+          if (esKiosko) {
+            // Dispositivo compartido: nunca se recuerda la cédula, se limpia para la siguiente persona
+            clearAll();
+          } else {
+            localStorage.setItem("app_user_cedula", cedula);
+            document.getElementById("keypad").style.display = "none";
+            document.getElementById("device-info").innerText = "🔒 Dispositivo vinculado a: " + cedula;
+          }
         }
 
         mostrarResultado(res);
@@ -423,7 +445,10 @@
       }
 
       overlay.style.display = "flex";
-      setTimeout(() => { overlay.style.display = "none"; }, 3500);
+    }
+
+    function cerrarResultado() {
+      document.getElementById("overlay").style.display = "none";
     }
 
     window.onload = () => {
