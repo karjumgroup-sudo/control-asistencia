@@ -15,9 +15,37 @@
   <meta name="apple-mobile-web-app-title" content="Asistencia Karjim">
 
   <!-- Ícono y comportamiento al agregar a pantalla de inicio en Android -->
-  <link rel="manifest" href="manifest.json">
+  <link id="app-manifest" rel="manifest" href="manifest.json">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#D2B47C">
+
+  <script>
+    // Si la URL trae ?kiosko=XX, generamos un manifest "a la medida" cuyo start_url
+    // incluye ese mismo parámetro. Así, al usar "Agregar a inicio" / "Instalar app",
+    // el ícono abre siempre index.html?kiosko=XX y no la URL sin parámetro.
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      var kiosko = params.get("kiosko");
+      if (!kiosko) return; // dispositivo personal: usa manifest.json normal, sin cambios
+
+      var manifestDinamico = {
+        name: "Asistencia Karjim - Kiosco " + kiosko,
+        short_name: "Kiosco " + kiosko,
+        start_url: "index.html?kiosko=" + encodeURIComponent(kiosko),
+        scope: "./",
+        display: "standalone",
+        background_color: "#F5F6F8",
+        theme_color: "#D2B47C",
+        icons: [
+          { src: "Icono Karjim CR.jpeg", sizes: "192x192", type: "image/jpeg" },
+          { src: "Icono Karjim CR.jpeg", sizes: "512x512", type: "image/jpeg" }
+        ]
+      };
+
+      var blob = new Blob([JSON.stringify(manifestDinamico)], { type: "application/json" });
+      document.getElementById("app-manifest").setAttribute("href", URL.createObjectURL(blob));
+    })();
+  </script>
 
   <style>
     :root {
@@ -252,7 +280,7 @@
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzRvtKwPBUowWtr1OpPosuc-Jh5FoNxd2SiqKMixXkQKuXNEqvgXEBXeISGnvbfhoOe/exec";
 
     // ⚠️ Debe coincidir EXACTAMENTE con SHARED_TOKEN en Config.gs
-    const APP_TOKEN = "4DC0D0B471DBC5B7D95342C200D0EDAB";
+    const APP_TOKEN = "CAMBIA-ESTE-TOKEN-2026";
 
     // Esta lista solo se usa para mostrar un mensaje rápido en pantalla (UX).
     // La validación real y definitiva ocurre en el servidor (Ubicacion.gs),
@@ -275,15 +303,8 @@
     let esKiosko = false;
 
     function inicializarDeviceId() {
-      // 1. Buscar en parámetros normales (?kiosko=01)
-  const params = new URLSearchParams(window.location.search);
-  let kioskoParam = params.get("kiosko");
-
-  // 2. Si no lo encuentra, buscar en el Hash (#kiosko=01)
-  if (!kioskoParam && window.location.hash) {
-    const hashParams = new URLSearchParams(window.location.hash.replace("#", "?"));
-    kioskoParam = hashParams.get("kiosko");
-  }
+      const params = new URLSearchParams(window.location.search);
+      const kioskoParam = params.get("kiosko");
 
       if (kioskoParam) {
         // Modo kiosco: ID fijo y predecible, NO se guarda en localStorage,
