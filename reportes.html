@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reportes - Karjim</title>
+
+  <link rel="icon" type="image/jpeg" href="Icono Karjim CR.jpeg">
+  <link rel="apple-touch-icon" href="Icono Karjim CR.jpeg">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Reportes Karjim">
+  <meta name="theme-color" content="#D2B47C">
+
+  <style>
+    :root {
+      --primary-color: #D2B47C;
+      --primary-hover: #C2A36B;
+      --bg-gradient-start: #F5F6F8;
+      --bg-gradient-end: #E2E4E9;
+      --text-dark: #2C3E50;
+      --text-muted: #6C7A89;
+      --white: #FFFFFF;
+      --danger: #E74C3C;
+    }
+
+    * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+
+    body {
+      background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+      margin: 0;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      background: var(--white);
+      padding: 25px 22px;
+      border-radius: 20px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.08);
+      width: 100%;
+      max-width: 440px;
+      margin-top: 20px;
+    }
+
+    h1 { font-size: 1.3rem; color: var(--text-dark); text-align: center; margin: 0 0 20px; }
+
+    .campo { margin-bottom: 14px; }
+    .campo label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
+    .campo input, .campo select {
+      width: 100%;
+      padding: 12px;
+      font-size: 1rem;
+      border: 2px solid #E2E8F0;
+      border-radius: 10px;
+      background: #FAFAFA;
+      color: var(--text-dark);
+    }
+
+    .tarjeta {
+      border: 1px solid #E9ECEF;
+      border-radius: 16px;
+      padding: 18px;
+      margin-bottom: 18px;
+    }
+    .tarjeta h2 { font-size: 1rem; color: var(--text-dark); margin: 0 0 14px; }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 18px;
+      background: #F5F6F8;
+      padding: 4px;
+      border-radius: 12px;
+    }
+    .tab-btn {
+      flex: 1;
+      background: transparent;
+      border: none;
+      padding: 10px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      border-radius: 9px;
+      cursor: pointer;
+    }
+    .tab-btn.active {
+      background: var(--white);
+      color: var(--text-dark);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+
+    .btn {
+      width: 100%;
+      background: var(--primary-color);
+      color: var(--white);
+      border: none;
+      padding: 14px;
+      font-size: 1rem;
+      font-weight: 700;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    .btn:disabled { background: #BDC3C7; cursor: not-allowed; }
+
+    #panel-login .btn { margin-top: 6px; }
+    #panel-reportes { display: none; }
+
+    .resultado {
+      margin-top: 12px;
+      padding: 14px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+    }
+    .resultado.ok { background: #E8F8F5; color: #117A65; }
+    .resultado.error { background: #FDEDEC; color: #922B21; }
+    .resultado a {
+      display: inline-block;
+      margin-top: 8px;
+      background: var(--primary-color);
+      color: #fff;
+      padding: 8px 14px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container" id="panel-login">
+    <h1>🔒 Acceso a Reportes</h1>
+    <div class="campo">
+      <label>Usuario</label>
+      <input type="text" id="login-usuario" placeholder="Ej. jgomez" autocomplete="username">
+    </div>
+    <div class="campo">
+      <label>Contraseña</label>
+      <input type="password" id="login-contrasena" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn" id="btn-login" onclick="verificarAcceso()">Entrar</button>
+    <div id="login-error" class="resultado error" style="display:none;"></div>
+  </div>
+
+  <div class="container" id="panel-reportes">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
+      <h1 style="margin:0;">📊 Reportes</h1>
+      <button onclick="cerrarSesion()" style="background:none; border:none; color:var(--text-muted); font-size:0.8rem; text-decoration:underline; cursor:pointer;">Cerrar sesión</button>
+    </div>
+    <p id="bienvenida" style="text-align:center; color:var(--text-muted); font-size:0.85rem; margin-top:0; margin-bottom:18px;"></p>
+
+    <div class="tabs">
+      <button class="tab-btn active" id="tab-btn-mensual" onclick="cambiarTab('mensual')">📅 Mensual</button>
+      <button class="tab-btn" id="tab-btn-semanal" onclick="cambiarTab('semanal')">📆 Semanal</button>
+    </div>
+
+    <div id="tab-mensual">
+      <div class="tarjeta">
+        <h2>Reporte individual por cédula</h2>
+        <div class="campo">
+          <label>Cédula</label>
+          <input type="text" id="cedula" placeholder="Ej. 123456789">
+        </div>
+        <div class="campo">
+          <label>Mes</label>
+          <select id="mes-cedula"></select>
+        </div>
+        <div class="campo">
+          <label>Año</label>
+          <input type="number" id="anio-cedula" placeholder="2026">
+        </div>
+        <button class="btn" id="btn-cedula" onclick="generarReporteCedula()">Generar reporte</button>
+        <div id="resultado-cedula"></div>
+      </div>
+
+      <div class="tarjeta">
+        <h2>Reporte general del mes (todos)</h2>
+        <div class="campo">
+          <label>Mes</label>
+          <select id="mes-general"></select>
+        </div>
+        <div class="campo">
+          <label>Año</label>
+          <input type="number" id="anio-general" placeholder="2026">
+        </div>
+        <button class="btn" id="btn-general" onclick="generarReporteGeneral()">Generar reporte</button>
+        <div id="resultado-general"></div>
+      </div>
+    </div>
+
+    <div id="tab-semanal" style="display:none;">
+      <div class="tarjeta">
+        <h2>Reporte individual por cédula (rango de fechas)</h2>
+        <div class="campo">
+          <label>Cédula</label>
+          <input type="text" id="cedula-semanal" placeholder="Ej. 123456789">
+        </div>
+        <div class="campo">
+          <label>Desde</label>
+          <input type="date" id="fecha-inicio-cedula">
+        </div>
+        <div class="campo">
+          <label>Hasta</label>
+          <input type="date" id="fecha-fin-cedula">
+        </div>
+        <button class="btn" id="btn-semanal-cedula" onclick="generarReporteSemanalCedula()">Generar reporte</button>
+        <div id="resultado-semanal-cedula"></div>
+      </div>
+
+      <div class="tarjeta">
+        <h2>Reporte general por rango de fechas (todos)</h2>
+        <div class="campo">
+          <label>Desde</label>
+          <input type="date" id="fecha-inicio-general">
+        </div>
+        <div class="campo">
+          <label>Hasta</label>
+          <input type="date" id="fecha-fin-general">
+        </div>
+        <button class="btn" id="btn-semanal-general" onclick="generarReporteSemanalGeneral()">Generar reporte</button>
+        <div id="resultado-semanal-general"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzRvtKwPBUowWtr1OpPosuc-Jh5FoNxd2SiqKMixXkQKuXNEqvgXEBXeISGnvbfhoOe/exec";
+
+    let usuarioActual = "";
+    let contrasenaActual = "";
+
+    const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+
+    function llenarMeses() {
+      const hoy = new Date();
+      ["mes-cedula", "mes-general"].forEach(id => {
+        const select = document.getElementById(id);
+        MESES.forEach((nombre, i) => {
+          const opt = document.createElement("option");
+          opt.value = i + 1;
+          opt.innerText = nombre;
+          select.appendChild(opt);
+        });
+        select.value = hoy.getMonth() + 1;
+      });
+      document.getElementById("anio-cedula").value = hoy.getFullYear();
+      document.getElementById("anio-general").value = hoy.getFullYear();
+    }
+
+    function aFechaISO(d) {
+      return d.toISOString().slice(0, 10);
+    }
+
+    function llenarFechasSemanales() {
+      const hoy = new Date();
+      const haceUnaSemana = new Date();
+      haceUnaSemana.setDate(hoy.getDate() - 6);
+
+      document.getElementById("fecha-inicio-cedula").value = aFechaISO(haceUnaSemana);
+      document.getElementById("fecha-fin-cedula").value = aFechaISO(hoy);
+      document.getElementById("fecha-inicio-general").value = aFechaISO(haceUnaSemana);
+      document.getElementById("fecha-fin-general").value = aFechaISO(hoy);
+    }
+
+    function cambiarTab(tab) {
+      const esMensual = tab === "mensual";
+      document.getElementById("tab-mensual").style.display = esMensual ? "block" : "none";
+      document.getElementById("tab-semanal").style.display = esMensual ? "none" : "block";
+      document.getElementById("tab-btn-mensual").classList.toggle("active", esMensual);
+      document.getElementById("tab-btn-semanal").classList.toggle("active", !esMensual);
+    }
+
+    async function verificarAcceso() {
+      const usuario = document.getElementById("login-usuario").value.trim();
+      const contrasena = document.getElementById("login-contrasena").value;
+      const btn = document.getElementById("btn-login");
+      const error = document.getElementById("login-error");
+      error.style.display = "none";
+
+      if (!usuario || !contrasena) {
+        error.style.display = "block";
+        error.innerText = "Complete usuario y contraseña.";
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerText = "Verificando...";
+
+      try {
+        const response = await fetch(WEB_APP_URL, {
+          method: "POST",
+          mode: "cors",
+          redirect: "follow",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ accion: "login", usuario: usuario, contrasena: contrasena })
+        });
+
+        const res = await response.json();
+
+        if (res.status === "SUCCESS") {
+          usuarioActual = usuario;
+          contrasenaActual = contrasena;
+          document.getElementById("bienvenida").innerText = "Hola, " + (res.nombre || usuario);
+          document.getElementById("panel-login").style.display = "none";
+          document.getElementById("panel-reportes").style.display = "block";
+        } else {
+          error.style.display = "block";
+          error.innerText = res.message || "No se pudo iniciar sesión.";
+        }
+      } catch (err) {
+        error.style.display = "block";
+        error.innerText = "Error de conexión.";
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "Entrar";
+      }
+    }
+
+    function cerrarSesion() {
+      usuarioActual = "";
+      contrasenaActual = "";
+      document.getElementById("login-contrasena").value = "";
+      document.getElementById("panel-reportes").style.display = "none";
+      document.getElementById("panel-login").style.display = "block";
+    }
+
+    async function llamarReporte(payload, btnId, resultadoId) {
+      const btn = document.getElementById(btnId);
+      const contenedor = document.getElementById(resultadoId);
+      btn.disabled = true;
+      contenedor.innerHTML = "";
+
+      try {
+        const response = await fetch(WEB_APP_URL, {
+          method: "POST",
+          mode: "cors",
+          redirect: "follow",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(payload)
+        });
+
+        const res = await response.json();
+
+        if (res.status === "SUCCESS") {
+          const esIndividual = payload.accion === "reporte_cedula" || payload.accion === "reporte_semanal_cedula";
+          const extra = esIndividual
+            ? `${res.cantidadRegistros} registro(s). Horas: ${res.totalHorasTexto}.`
+            : `${res.colaboradoresConMarcajes} colaborador(es) con marcajes. Horas totales: ${res.totalHorasTexto}.`;
+
+          contenedor.innerHTML = `
+            <div class="resultado ok">
+              <strong>${res.nombreArchivo}</strong><br>
+              ${extra}<br>
+              <a href="${res.url}" target="_blank">Abrir reporte</a>
+            </div>`;
+        } else {
+          contenedor.innerHTML = `<div class="resultado error">${res.message || "No se pudo generar el reporte."}</div>`;
+          if (res.message === "Usuario o contraseña incorrectos.") {
+            // La sesión ya no es válida (ej. el admin fue desactivado): regresar al login
+            cerrarSesion();
+            document.getElementById("login-error").style.display = "block";
+            document.getElementById("login-error").innerText = "Tu sesión ya no es válida. Inicia sesión de nuevo.";
+          }
+        }
+      } catch (err) {
+        contenedor.innerHTML = `<div class="resultado error">Error de conexión.</div>`;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function generarReporteCedula() {
+      const cedula = document.getElementById("cedula").value.trim();
+      const mes = document.getElementById("mes-cedula").value;
+      const anio = document.getElementById("anio-cedula").value;
+      if (!cedula || !mes || !anio) return alert("Complete todos los campos.");
+
+      llamarReporte({
+        accion: "reporte_cedula",
+        usuario: usuarioActual,
+        contrasena: contrasenaActual,
+        cedula: cedula,
+        mes: mes,
+        anio: anio
+      }, "btn-cedula", "resultado-cedula");
+    }
+
+    function generarReporteGeneral() {
+      const mes = document.getElementById("mes-general").value;
+      const anio = document.getElementById("anio-general").value;
+      if (!mes || !anio) return alert("Complete todos los campos.");
+
+      llamarReporte({
+        accion: "reporte_general",
+        usuario: usuarioActual,
+        contrasena: contrasenaActual,
+        mes: mes,
+        anio: anio
+      }, "btn-general", "resultado-general");
+    }
+
+    function generarReporteSemanalCedula() {
+      const cedula = document.getElementById("cedula-semanal").value.trim();
+      const fechaInicio = document.getElementById("fecha-inicio-cedula").value;
+      const fechaFin = document.getElementById("fecha-fin-cedula").value;
+      if (!cedula || !fechaInicio || !fechaFin) return alert("Complete todos los campos.");
+      if (fechaInicio > fechaFin) return alert("La fecha 'Desde' no puede ser posterior a 'Hasta'.");
+
+      llamarReporte({
+        accion: "reporte_semanal_cedula",
+        usuario: usuarioActual,
+        contrasena: contrasenaActual,
+        cedula: cedula,
+        fechaInicio: fechaInicio,
+        fechaFin: fechaFin
+      }, "btn-semanal-cedula", "resultado-semanal-cedula");
+    }
+
+    function generarReporteSemanalGeneral() {
+      const fechaInicio = document.getElementById("fecha-inicio-general").value;
+      const fechaFin = document.getElementById("fecha-fin-general").value;
+      if (!fechaInicio || !fechaFin) return alert("Complete todos los campos.");
+      if (fechaInicio > fechaFin) return alert("La fecha 'Desde' no puede ser posterior a 'Hasta'.");
+
+      llamarReporte({
+        accion: "reporte_semanal_general",
+        usuario: usuarioActual,
+        contrasena: contrasenaActual,
+        fechaInicio: fechaInicio,
+        fechaFin: fechaFin
+      }, "btn-semanal-general", "resultado-semanal-general");
+    }
+
+    window.onload = function () {
+      llenarMeses();
+      llenarFechasSemanales();
+    };
+  </script>
+</body>
+</html>
