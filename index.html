@@ -261,9 +261,20 @@
       <button class="btn-key btn-delete" onclick="deleteLast()">⌫</button>
     </div>
 
-    <button id="btn-marcar" class="btn-submit" onclick="enviarMarca()" disabled>MARCAR ASISTENCIA</button>
+    <button id="btn-marcar" class="btn-submit" onclick="iniciarMarcaje()" disabled>MARCAR ASISTENCIA</button>
 
    
+  </div>
+
+  <!-- Modal de confirmación (antes de marcar) -->
+  <div id="overlay-confirmar" class="overlay">
+    <div id="card-confirmar" class="card-result" style="border-top: 8px solid var(--primary-color);">
+      <h2 id="confirmar-titulo" style="margin: 10px 0; font-size: 1.6rem; color: var(--text-dark);"></h2>
+      <p id="confirmar-nombre" style="font-weight: bold; color: var(--text-dark);"></p>
+      <p id="confirmar-detalle" style="font-size: 1rem; color: var(--text-muted); margin: 8px 0;"></p>
+      <button class="btn-submit" style="margin-top: 10px;" onclick="confirmarMarcaje()">Confirmar</button>
+      <button class="btn-reset" style="margin-top: 12px; display:block; width:100%;" onclick="cancelarConfirmacion()">Cancelar</button>
+    </div>
   </div>
 
   <!-- Modal -->
@@ -396,7 +407,7 @@
       document.getElementById("cedula-input").value = "";
     }
 
-    async function enviarMarca() {
+    async function iniciarMarcaje() {
       const cedula = document.getElementById("cedula-input").value.trim();
       if (!cedula) return alert("Por favor digite su cédula.");
 
@@ -404,6 +415,61 @@
         return alert("Aún no se ha detectado su ubicación. Active el GPS e intente de nuevo.");
       }
 
+      const btn = document.getElementById("btn-marcar");
+      btn.disabled = true;
+      btn.innerText = "Consultando...";
+
+      try {
+        const response = await fetch(WEB_APP_URL, {
+          method: "POST",
+          mode: "cors",
+          redirect: "follow",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({
+            accion: "consultar_estado",
+            token: APP_TOKEN,
+            cedula: cedula
+          })
+        });
+
+        const res = await response.json();
+
+        if (res.status === "SUCCESS") {
+          mostrarConfirmacion(res);
+        } else {
+          // Si la cédula no existe o hay error, se muestra directo (no tiene sentido confirmar algo inválido)
+          mostrarResultado(res);
+        }
+
+      } catch (err) {
+        mostrarResultado({ status: "ERROR", message: "Error de conexión o permisos." });
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "MARCAR ASISTENCIA";
+      }
+    }
+
+    function mostrarConfirmacion(res) {
+      const emoji = res.proximoTipo === "ENTRADA" ? "🟢" : "🔴";
+      document.getElementById("confirmar-titulo").innerText = `${emoji} Vas a marcar: ${res.proximoTipo}`;
+      document.getElementById("confirmar-nombre").innerText = res.nombre;
+
+      const detalle = res.ultimoTipo
+        ? `Tu última marca fue ${res.ultimoTipo} a las ${res.ultimaHora}.`
+        : "Todavía no tienes marcajes hoy.";
+      document.getElementById("confirmar-detalle").innerText = detalle;
+
+      document.getElementById("overlay-confirmar").style.display = "flex";
+    }
+
+    function cancelarConfirmacion() {
+      document.getElementById("overlay-confirmar").style.display = "none";
+    }
+
+    async function confirmarMarcaje() {
+      document.getElementById("overlay-confirmar").style.display = "none";
+
+      const cedula = document.getElementById("cedula-input").value.trim();
       const btn = document.getElementById("btn-marcar");
       btn.disabled = true;
       btn.innerText = "Procesando...";
