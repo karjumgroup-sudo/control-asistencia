@@ -83,7 +83,6 @@
       text-align: center; 
     }
 
-  
     .brand-header {
       display: flex;
       flex-direction: column;
@@ -204,7 +203,6 @@
       font-size: 0.8rem;
     }
 
-
     .overlay { 
       position: fixed; 
       top:0; left:0; width:100%; height:100%; 
@@ -236,7 +234,6 @@
   <div class="container">
 
     <div class="brand-header">
-      
       <img src="Icono Karjim CR.jpeg" alt="Karjim Logo" class="brand-logo">
       <h1 class="brand-title">Control de Asistencia</h1>
     </div>
@@ -266,7 +263,6 @@
       <button id="btn-salida" class="btn-submit" style="background: var(--danger); box-shadow: 0 6px 18px rgba(231, 76, 60, 0.35);" onclick="iniciarMarcaje('SALIDA')" disabled>🔴 SALIDA</button>
     </div>
 
-   
   </div>
 
   <!-- Modal de confirmación (antes de marcar) -->
@@ -280,7 +276,7 @@
     </div>
   </div>
 
-  <!-- Modal -->
+  <!-- Modal Resultado -->
   <div id="overlay" class="overlay">
     <div id="card-result" class="card-result">
       <h2 id="res-title"></h2>
@@ -293,12 +289,9 @@
   <script>
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzRvtKwPBUowWtr1OpPosuc-Jh5FoNxd2SiqKMixXkQKuXNEqvgXEBXeISGnvbfhoOe/exec";
 
-    // ⚠️ Debe coincidir EXACTAMENTE con SHARED_TOKEN en Config.gs
+    // Debe coincidir EXACTAMENTE con SHARED_TOKEN en Config.gs
     const APP_TOKEN = "4DC0D0B471DBC5B7D95342CADAD200D0EDAB";
 
-    // Esta lista solo se usa para mostrar un mensaje rápido en pantalla (UX).
-    // La validación real y definitiva ocurre en el servidor (Ubicacion.gs),
-    // que recalcula todo a partir de las coordenadas crudas.
     const PLAZAS = [
       { nombre: "Multiplaza Escazú", lat: 9.94506212827314, lng: -84.15205751759024 },
       { nombre: "Multiplaza Curridabat", lat: 9.917243975407315, lng: -84.04671783293279 },
@@ -321,8 +314,6 @@
       const kioskoParam = params.get("kiosko");
 
       if (kioskoParam) {
-        // Modo kiosco: ID fijo y predecible, NO se guarda en localStorage,
-        // y NUNCA se recuerda/oculta el teclado (lo usan varias personas).
         esKiosko = true;
         deviceId = "KIOSK-" + kioskoParam.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
         document.getElementById("device-info").innerText = "🖥️ Modo kiosco (" + deviceId + ") — cualquier cédula puede marcar aquí";
@@ -446,7 +437,6 @@
         if (res.status === "SUCCESS") {
           mostrarConfirmacion(res, tipoElegido);
         } else {
-          // Si la cédula no existe o hay error, se muestra directo (no tiene sentido confirmar algo inválido)
           mostrarResultado(res);
         }
 
@@ -464,8 +454,6 @@
 
       const detalleEl = document.getElementById("confirmar-detalle");
 
-      // Aviso si la elección no cuadra con la última marca conocida (ej. marcar
-      // ENTRADA cuando ya hay una entrada sin cerrar, o SALIDA sin entrada previa)
       const entradaSinCerrar = res.ultimoTipo === "ENTRADA";
       const hayInconsistencia =
         (tipoElegido === "ENTRADA" && entradaSinCerrar) ||
@@ -507,6 +495,7 @@
             "Content-Type": "text/plain;charset=utf-8"
           },
           body: JSON.stringify({
+            accion: "marcar", // <--- ACCIÓN AGREGADA PARA ENRUTAR CORRECTAMENTE AL BACKEND
             token: APP_TOKEN,
             cedula: cedula,
             deviceId: deviceId,
@@ -520,7 +509,6 @@
         
         if (res.status === "SUCCESS") {
           if (esKiosko) {
-            // Dispositivo compartido: nunca se recuerda la cédula, se limpia para la siguiente persona
             clearAll();
           } else {
             localStorage.setItem("app_user_cedula", cedula);
