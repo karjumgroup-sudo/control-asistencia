@@ -261,7 +261,10 @@
       <button class="btn-key btn-delete" onclick="deleteLast()">⌫</button>
     </div>
 
-    <button id="btn-marcar" class="btn-submit" onclick="iniciarMarcaje()" disabled>MARCAR ASISTENCIA</button>
+    <div style="display:flex; gap:10px;">
+      <button id="btn-entrada" class="btn-submit" style="background: var(--success); box-shadow: 0 6px 18px rgba(46, 204, 113, 0.35);" onclick="iniciarMarcaje('ENTRADA')" disabled>🟢 ENTRADA</button>
+      <button id="btn-salida" class="btn-submit" style="background: var(--danger); box-shadow: 0 6px 18px rgba(231, 76, 60, 0.35);" onclick="iniciarMarcaje('SALIDA')" disabled>🔴 SALIDA</button>
+    </div>
 
    
   </div>
@@ -291,7 +294,7 @@
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzRvtKwPBUowWtr1OpPosuc-Jh5FoNxd2SiqKMixXkQKuXNEqvgXEBXeISGnvbfhoOe/exec";
 
     // ⚠️ Debe coincidir EXACTAMENTE con SHARED_TOKEN en Config.gs
-    const APP_TOKEN = "4DC0D0B471DBC5B7D95342C200D0EDAB";
+    const APP_TOKEN = "CAMBIA-ESTE-TOKEN-2026";
 
     // Esta lista solo se usa para mostrar un mensaje rápido en pantalla (UX).
     // La validación real y definitiva ocurre en el servidor (Ubicacion.gs),
@@ -342,6 +345,11 @@
       }
     }
 
+    function habilitarBotonesMarcar(habilitar) {
+      document.getElementById("btn-entrada").disabled = !habilitar;
+      document.getElementById("btn-salida").disabled = !habilitar;
+    }
+
     function obtenerUbicacion() {
       const badge = document.getElementById("badge-gps");
       
@@ -369,17 +377,17 @@
           if (plazaEncontrada) {
             badge.className = "badge-location ok";
             badge.innerHTML = `📍 ${plazaEncontrada}`;
-            document.getElementById("btn-marcar").disabled = false;
+            habilitarBotonesMarcar(true);
           } else {
             badge.className = "badge-location error";
             badge.innerHTML = "⚠️ Fuera de rango de ubicación";
-            document.getElementById("btn-marcar").disabled = true;
+            habilitarBotonesMarcar(false);
           }
         },
         (err) => {
           badge.className = "badge-location error";
           badge.innerHTML = "⚠️ Debe activar el GPS";
-          document.getElementById("btn-marcar").disabled = true;
+          habilitarBotonesMarcar(false);
         },
         { enableHighAccuracy: true }
       );
@@ -407,7 +415,9 @@
       document.getElementById("cedula-input").value = "";
     }
 
-    async function iniciarMarcaje() {
+    let tipoElegidoPendiente = null;
+
+    async function iniciarMarcaje(tipoElegido) {
       const cedula = document.getElementById("cedula-input").value.trim();
       if (!cedula) return alert("Por favor digite su cédula.");
 
@@ -415,9 +425,8 @@
         return alert("Aún no se ha detectado su ubicación. Active el GPS e intente de nuevo.");
       }
 
-      const btn = document.getElementById("btn-marcar");
-      btn.disabled = true;
-      btn.innerText = "Consultando...";
+      tipoElegidoPendiente = tipoElegido;
+      habilitarBotonesMarcar(false);
 
       try {
         const response = await fetch(WEB_APP_URL, {
@@ -435,7 +444,7 @@
         const res = await response.json();
 
         if (res.status === "SUCCESS") {
-          mostrarConfirmacion(res);
+          mostrarConfirmacion(res, tipoElegido);
         } else {
           // Si la cédula no existe o hay error, se muestra directo (no tiene sentido confirmar algo inválido)
           mostrarResultado(res);
@@ -444,25 +453,41 @@
       } catch (err) {
         mostrarResultado({ status: "ERROR", message: "Error de conexión o permisos." });
       } finally {
-        btn.disabled = false;
-        btn.innerText = "MARCAR ASISTENCIA";
+        habilitarBotonesMarcar(true);
       }
     }
 
-    function mostrarConfirmacion(res) {
-      const emoji = res.proximoTipo === "ENTRADA" ? "🟢" : "🔴";
-      document.getElementById("confirmar-titulo").innerText = `${emoji} Vas a marcar: ${res.proximoTipo}`;
+    function mostrarConfirmacion(res, tipoElegido) {
+      const emoji = tipoElegido === "ENTRADA" ? "🟢" : "🔴";
+      document.getElementById("confirmar-titulo").innerText = `${emoji} Vas a marcar: ${tipoElegido}`;
       document.getElementById("confirmar-nombre").innerText = res.nombre;
 
-      const detalle = res.ultimoTipo
-        ? `Tu última marca fue ${res.ultimoTipo} a las ${res.ultimaHora}.`
-        : "Todavía no tienes marcajes hoy.";
-      document.getElementById("confirmar-detalle").innerText = detalle;
+      const detalleEl = document.getElementById("confirmar-detalle");
 
+      // Aviso si la elección no cuadra con la última marca conocida (ej. marcar
+      // ENTRADA cuando ya hay una entrada sin cerrar, o SALIDA sin entrada previa)
+      const entradaSinCerrar = res.ultimoTipo === "ENTRADA";
+      const hayInconsistencia =
+        (tipoElegido === "ENTRADA" && entradaSinCerrar) ||
+        (tipoElegido === "SALIDA" && !entradaSinCerrar);
+
+      let detalle = res.ultimoTipo
+        ? `Tu última marca fue ${res.ultimoTipo} el ${res.ultimaFecha} a las ${res.ultimaHora}.`
+        : "Todavía no tienes marcajes registrados.";
+
+      if (hayInconsistencia) {
+        detalle = "⚠️ " + detalle + " Verifica que sea correcto antes de confirmar.";
+        detalleEl.style.color = "#B8860B";
+      } else {
+        detalleEl.style.color = "";
+      }
+
+      detalleEl.innerText = detalle;
       document.getElementById("overlay-confirmar").style.display = "flex";
     }
 
     function cancelarConfirmacion() {
+      tipoElegidoPendiente = null;
       document.getElementById("overlay-confirmar").style.display = "none";
     }
 
@@ -470,9 +495,8 @@
       document.getElementById("overlay-confirmar").style.display = "none";
 
       const cedula = document.getElementById("cedula-input").value.trim();
-      const btn = document.getElementById("btn-marcar");
-      btn.disabled = true;
-      btn.innerText = "Procesando...";
+      const tipoElegido = tipoElegidoPendiente;
+      habilitarBotonesMarcar(false);
 
       try {
         const response = await fetch(WEB_APP_URL, {
@@ -486,6 +510,7 @@
             token: APP_TOKEN,
             cedula: cedula,
             deviceId: deviceId,
+            tipo: tipoElegido,
             lat: latDetectada,
             lng: lngDetectada
           })
@@ -509,8 +534,7 @@
       } catch (err) {
         mostrarResultado({ status: "ERROR", message: "Error de conexión o permisos." });
       } finally {
-        btn.disabled = false;
-        btn.innerText = "MARCAR ASISTENCIA";
+        habilitarBotonesMarcar(true);
       }
     }
 
