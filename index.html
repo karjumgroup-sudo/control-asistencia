@@ -20,13 +20,10 @@
   <meta name="theme-color" content="#D2B47C">
 
   <script>
-    // Si la URL trae ?kiosko=XX, generamos un manifest "a la medida" cuyo start_url
-    // incluye ese mismo parámetro. Así, al usar "Agregar a inicio" / "Instalar app",
-    // el ícono abre siempre index.html?kiosko=XX y no la URL sin parámetro.
     (function () {
       var params = new URLSearchParams(window.location.search);
       var kiosko = params.get("kiosko");
-      if (!kiosko) return; // dispositivo personal: usa manifest.json normal, sin cambios
+      if (!kiosko) return;
 
       var manifestDinamico = {
         name: "Asistencia Karjim - Kiosco " + kiosko,
@@ -74,8 +71,9 @@
     }
     
     .container { 
+      position: relative;
       background: var(--white); 
-      padding: 30px 25px; 
+      padding: 35px 25px 30px 25px; 
       border-radius: 24px; 
       box-shadow: 0 15px 35px rgba(0,0,0,0.08); 
       width: 100%; 
@@ -83,11 +81,27 @@
       text-align: center; 
     }
 
+    /* Reloj en tiempo real */
+    .live-clock {
+      position: absolute;
+      top: 18px;
+      left: 20px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-dark);
+      background: #F8F9FA;
+      padding: 5px 12px;
+      border-radius: 8px;
+      border: 1px solid #E9ECEF;
+      letter-spacing: 0.5px;
+    }
+
     .brand-header {
       display: flex;
       flex-direction: column;
       align-items: center;
       margin-bottom: 20px;
+      margin-top: 10px;
     }
 
     .brand-logo {
@@ -233,6 +247,9 @@
 
   <div class="container">
 
+    <!-- Reloj digital esquina superior izquierda -->
+    <div id="live-clock" class="live-clock">--:--:--</div>
+
     <div class="brand-header">
       <img src="Icono Karjim CR.jpeg" alt="Karjim Logo" class="brand-logo">
       <h1 class="brand-title">Control de Asistencia</h1>
@@ -265,7 +282,7 @@
 
   </div>
 
-  <!-- Modal de confirmación (antes de marcar) -->
+  <!-- Modal de confirmación -->
   <div id="overlay-confirmar" class="overlay">
     <div id="card-confirmar" class="card-result" style="border-top: 8px solid var(--primary-color);">
       <h2 id="confirmar-titulo" style="margin: 10px 0; font-size: 1.6rem; color: var(--text-dark);"></h2>
@@ -288,8 +305,6 @@
 
   <script>
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzRvtKwPBUowWtr1OpPosuc-Jh5FoNxd2SiqKMixXkQKuXNEqvgXEBXeISGnvbfhoOe/exec";
-
-    // Debe coincidir EXACTAMENTE con SHARED_TOKEN en Config.gs
     const APP_TOKEN = "4DC0D0B471DBC5B7D95342CADAD200D0EDAB";
 
     const PLAZAS = [
@@ -308,6 +323,16 @@
     let lngDetectada = null;
     let deviceId = "";
     let esKiosko = false;
+
+    function iniciarReloj() {
+      function actualizar() {
+        const ahora = new Date();
+        const opciones = { timeZone: "America/Costa_Rica", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true };
+        document.getElementById("live-clock").innerText = ahora.toLocaleTimeString("es-CR", opciones);
+      }
+      actualizar();
+      setInterval(actualizar, 1000);
+    }
 
     function inicializarDeviceId() {
       const params = new URLSearchParams(window.location.search);
@@ -495,7 +520,7 @@
             "Content-Type": "text/plain;charset=utf-8"
           },
           body: JSON.stringify({
-            accion: "marcar", // <--- ACCIÓN AGREGADA PARA ENRUTAR CORRECTAMENTE AL BACKEND
+            accion: "marcar",
             token: APP_TOKEN,
             cedula: cedula,
             deviceId: deviceId,
@@ -558,6 +583,7 @@
     }
 
     window.onload = () => {
+      iniciarReloj();
       inicializarDeviceId();
       obtenerUbicacion();
     };
