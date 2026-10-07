@@ -324,6 +324,28 @@
     let deviceId = "";
     let esKiosko = false;
 
+    // --- FUNCIÓN PARA REGISTRAR LOGS DE ERROR EN SHEETS ---
+    function enviarLogServidor(tipoError, mensajeDetalle) {
+      const cedula = document.getElementById("cedula-input")?.value.trim() || "Desconocida";
+      const coordsStr = (latDetectada !== null && lngDetectada !== null) ? `${latDetectada},${lngDetectada}` : "Sin GPS";
+
+      fetch(WEB_APP_URL, {
+        method: "POST",
+        mode: "cors",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({
+          accion: "registrar_log",
+          token: APP_TOKEN,
+          cedula: cedula,
+          deviceId: deviceId,
+          tipoError: tipoError,
+          mensaje: mensajeDetalle,
+          coords: coordsStr,
+          userAgent: navigator.userAgent
+        })
+      }).catch(() => {}); // Si falla el log no interrumpe el uso de la app
+    }
+
     function iniciarReloj() {
       function actualizar() {
         const ahora = new Date();
@@ -372,6 +394,7 @@
       if (!navigator.geolocation) {
         badge.className = "badge-location error";
         badge.innerHTML = "❌ GPS no soportado";
+        enviarLogServidor("GPS_NO_SOPORTADO", "Navegador o dispositivo no soporta la API de geolocalización.");
         return;
       }
 
@@ -398,12 +421,20 @@
             badge.className = "badge-location error";
             badge.innerHTML = "⚠️ Fuera de rango de ubicación";
             habilitarBotonesMarcar(false);
+            enviarLogServidor("FUERA_DE_RANGO", `Ubicación fuera de rango en coords: ${latDetectada}, ${lngDetectada}`);
           }
         },
         (err) => {
           badge.className = "badge-location error";
           badge.innerHTML = "⚠️ Debe activar el GPS";
           habilitarBotonesMarcar(false);
+
+          let msjError = "Error desconocido de GPS";
+          if (err.code === 1) msjError = "Permiso de ubicación DENEGADO por el usuario.";
+          else if (err.code === 2) msjError = "Ubicación NO DISPONIBLE (GPS/Red apagada o sin señal).";
+          else if (err.code === 3) msjError = "Tiempo de espera agotado al obtener ubicación.";
+
+          enviarLogServidor("GPS_ERROR_DISPOSITIVO", msjError);
         },
         { enableHighAccuracy: true }
       );
@@ -438,6 +469,7 @@
       if (!cedula) return alert("Por favor digite su cédula.");
 
       if (latDetectada === null || lngDetectada === null) {
+        enviarLogServidor("INTENTO_SIN_GPS", "Usuario intentó marcar sin coordenadas cargadas.");
         return alert("Aún no se ha detectado su ubicación. Active el GPS e intente de nuevo.");
       }
 
@@ -462,10 +494,12 @@
         if (res.status === "SUCCESS") {
           mostrarConfirmacion(res, tipoElegido);
         } else {
+          enviarLogServidor(res.status || "ERROR_CONSULTA", res.message || "Error al consultar estado del colaborador.");
           mostrarResultado(res);
         }
 
       } catch (err) {
+        enviarLogServidor("ERROR_RED_CONSULTA", `Fallo de conexión en consultar_estado: ${err.toString()}`);
         mostrarResultado({ status: "ERROR", message: "Error de conexión o permisos." });
       } finally {
         habilitarBotonesMarcar(true);
@@ -540,11 +574,15 @@
             document.getElementById("keypad").style.display = "none";
             document.getElementById("device-info").innerText = "🔒 Dispositivo vinculado a: " + cedula;
           }
+        } else {
+          // CAPTURAR RECHAZO (p. ej. DEVICE_MISMATCH o OUT_OF_RANGE) Y REGISTRAR EN LOGS
+          enviarLogServidor(res.status || "ERROR_MARCAJE", res.message || "Fallo en confirmación de marcaje.");
         }
 
         mostrarResultado(res);
 
       } catch (err) {
+        enviarLogServidor("ERROR_RED_MARCAR", `Fallo de conexión al enviar marca: ${err.toString()}`);
         mostrarResultado({ status: "ERROR", message: "Error de conexión o permisos." });
       } finally {
         habilitarBotonesMarcar(true);
